@@ -55,7 +55,7 @@ const AdminClaimList = () => {
         rejected: "error"
     }[status] || "default");
     
-    const API_BASE_URL_NO_API = process.env.REACT_APP_API_BASE_URL.replace("/api", "");
+    const API_BASE_URL_NO_API = (process.env.REACT_APP_API_BASE_URL || '').replace("/api", "");
 
     return (
         <div>
