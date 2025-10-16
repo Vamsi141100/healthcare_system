@@ -101,6 +101,20 @@ CREATE TABLE insurance_claims (
     FOREIGN KEY (appointment_id) REFERENCES appointments(id) ON DELETE CASCADE
 );
 
+CREATE TABLE pharmacies (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    address TEXT,
+    phone_number VARCHAR(255),
+    delivery_available BOOLEAN DEFAULT false,
+    delivery_zips TEXT, -- Comma-separated list of zip codes
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+ALTER TABLE appointments ADD COLUMN pharmacy_id INT NULL AFTER prescription_path;
+ALTER TABLE appointments ADD FOREIGN KEY (pharmacy_id) REFERENCES pharmacies(id) ON DELETE SET NULL;
+
 -- Potentially add a table for Personal Health Records (PHR)
 -- CREATE TABLE health_records ( ... ); This needs careful design based on requirements
 

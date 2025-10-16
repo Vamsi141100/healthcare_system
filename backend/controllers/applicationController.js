@@ -1,5 +1,6 @@
 const pool = require("../config/db");
 const fs = require("fs");
+const { sendEmail } = require('../utils/emailService');
 const submitApplication = async (req, res, next) => {
   const { specialization, bio, applying_for_role = "doctor" } = req.body;
   const userId = req.user.id;
@@ -173,6 +174,7 @@ const reviewApplication = async (req, res, next) => {
       return res.status(404).json({ message: "Application not found" });
     }
     const application = appRows[0];
+    const [applicant] = await connection.query("SELECT name, email FROM users WHERE id = ?", [application.user_id]);
 
     if (application.status !== "pending") {
       await connection.rollback();
@@ -213,6 +215,17 @@ const reviewApplication = async (req, res, next) => {
 
     await connection.commit();
     connection.release();
+
+    
+    if (applicant.length > 0) {
+      const user = applicant[0];
+      sendEmail({
+        to: user.email,
+        subject: `Your Health Hub Application has been ${status}`,
+        text: `Hi ${user.name},\n\nYour application to become a doctor on Health Hub has been ${status}.\n\nAdmin Notes: ${admin_notes || 'N/A'}\n\nThank you,\nThe Health Hub Team`,
+        html: `<p>Hi ${user.name},</p><p>Your application to become a doctor on Health Hub has been <strong>${status}</strong>.</p><p><b>Admin Notes:</b> ${admin_notes || 'N/A'}</p><p>Thank you,<br>The Health Hub Team</p>`,
+      });
+    }
 
     const [
       updatedApp,

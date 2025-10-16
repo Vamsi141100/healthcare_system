@@ -8,8 +8,10 @@ import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
 import AdminUserList from "../components/admin/AdminUserList";
 import AdminAppointmentList from "../components/admin/AdminAppointmentList";
 import AdminApplicationList from "../components/admin/AdminApplicationList";
+import LocalPharmacyIcon from '@mui/icons-material/LocalPharmacy';
 import AdminSupportList from "../components/admin/AdminSupportList";
 import AdminClaimList from "../components/admin/AdminClaimList";
+import AdminPharmacyList from "../components/admin/AdminPharmacyList";
 
 function TabPanel(props) {
   const { children, value, index, ...other } = props;
@@ -86,6 +88,13 @@ const AdminDashboard = () => {
               id="admin-tab-4"
               aria-controls="admin-tabpanel-4"
             />
+            <Tab
+              label="Pharmacies"
+              icon={<LocalPharmacyIcon />}
+              iconPosition="start"
+              id="admin-tab-5"
+              aria-controls="admin-tabpanel-5"
+           />
           </Tabs>
         </Box>
 
@@ -103,6 +112,9 @@ const AdminDashboard = () => {
         </TabPanel>
         <TabPanel value={currentTab} index={4}>
           <AdminClaimList /> 
+        </TabPanel>
+        <TabPanel value={currentTab} index={5}>
+          <AdminPharmacyList /> 
         </TabPanel>
       </Paper>
     </Container>

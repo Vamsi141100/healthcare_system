@@ -42,3 +42,53 @@ INSERT INTO applications (user_id, applying_for_role, specialization, bio, docum
 INSERT INTO support_tickets (user_id, subject, question, status) VALUES
 (2, 'Login Issue', 'I forgot my password, how do I reset it?', 'open'),
 (3, 'Booking Fee', 'Why was I charged before the appointment?', 'open');
+
+
+-- Insurance Claims
+-- Appointment IDs: (1, 2, 3, 4)
+-- Patients: Alice (2), Bob (3), Diana (5)
+INSERT INTO insurance_claims (
+    patient_id, appointment_id, provider_name, policy_number, plan_type, 
+    insured_name, insured_dob, insured_sex, relationship_to_patient, 
+    invoice_path, insurance_card_front_path, government_id_path, status, reviewed_at, admin_notes
+) VALUES
+-- Claim for Alice (Appointment 1)
+(2, 1, 'HealthSecure Insurance Co.', 'POL123456A', 'Gold Health Plan', 
+ 'Alice Patient', '1990-06-14', 'Female', 'Self', 
+ 'uploads/invoices/invoice_1.pdf', 
+ 'uploads/insurance_cards/alice_front.jpg', 
+ 'uploads/ids/alice_id.jpg', 
+ 'approved', NOW(), 'All documents verified and claim approved.'),
+
+-- Claim for Bob (Appointment 2)
+(3, 2, 'CarePlus Medical Insurance', 'POL654321B', 'Silver Care Plan', 
+ 'Bob Patient', '1987-09-20', 'Male', 'Self', 
+ 'uploads/invoices/invoice_2.pdf', 
+ 'uploads/insurance_cards/bob_front.jpg', 
+ 'uploads/ids/bob_id.jpg', 
+ 'pending', NULL, 'Awaiting insurer verification.'),
+
+-- Another claim for Alice (Appointment 3)
+(2, 3, 'HealthSecure Insurance Co.', 'POL123456A', 'Gold Health Plan', 
+ 'Alice Patient', '1990-06-14', 'Female', 'Self', 
+ 'uploads/invoices/invoice_3.pdf', 
+ 'uploads/insurance_cards/alice_front.jpg', 
+ 'uploads/ids/alice_id.jpg', 
+ 'rejected', NOW(), 'Claim rejected due to missing prescription details.'),
+
+-- Claim submitted by Diana (Appointment 4)
+(5, 4, 'MediTrust Health', 'POL777999C', 'Basic Health Cover', 
+ 'Diana Applying', '1995-12-02', 'Female', 'Self', 
+ 'uploads/invoices/invoice_4.pdf', 
+ 'uploads/insurance_cards/diana_front.jpg', 
+ 'uploads/ids/diana_id.jpg', 
+ 'pending', NULL, 'Claim under review.');
+
+
+-- Pharmacies
+INSERT INTO pharmacies (name, address, phone_number, delivery_available, delivery_zips) VALUES
+('HealthFirst Pharmacy', '123 Wellness Ave, Mumbai, MH 400001', '+91-9876543210', true, '400001,400002,400003'),
+('MediCare Plus', '22 Green Street, Bengaluru, KA 560001', '+91-9123456780', true, '560001,560002,560003,560004'),
+('CityCare Pharmacy', '55 Sunshine Road, Delhi, DL 110001', '+91-9988776655', false, NULL),
+('QuickMeds Express', '88 Riverbank Lane, Pune, MH 411001', '+91-9001122334', true, '411001,411002,411003,411004,411005'),
+('CareZone Drugs', '12 Wellness Plaza, Chennai, TN 600001', '+91-9345678901', false, NULL);

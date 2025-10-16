@@ -30,6 +30,8 @@ import UploadFileIcon from "@mui/icons-material/UploadFile";
 import AttachMoneyIcon from "@mui/icons-material/AttachMoney";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import { useSnackbar } from "notistack";
+import pharmacyService from "../services/pharmacyService";
+import { Select, MenuItem, FormControl, InputLabel } from '@mui/material';
 import VideoCallSelfHosted from "../components/video/VideoCallSelfHosted";
 import { Link as RouterLink } from "react-router-dom";
 
@@ -44,6 +46,8 @@ const AppointmentDetailsPage = () => {
   const [doctorNotes, setDoctorNotes] = useState("");
   const [feeInput, setFeeInput] = useState("");
   const [prescriptionFile, setPrescriptionFile] = useState(null);
+  const [pharmacies, setPharmacies] = useState([]);
+  const [selectedPharmacy, setSelectedPharmacy] = useState('');
   const [isUpdating, setIsUpdating] = useState(false);
   const [, setIsPaying] = useState(false);
   const fileInputRef = useRef(null);
@@ -73,11 +77,24 @@ const AppointmentDetailsPage = () => {
       setIsLoading(false);
     }
   }, [appointmentId, user?.role, enqueueSnackbar]);
+
+  const fetchPharmacies = useCallback(async () => {
+      try {
+          const data = await pharmacyService.getPharmacies();
+          setPharmacies(data || []);
+      } catch(err) {
+          enqueueSnackbar('Could not load pharmacies', { variant: 'error' });
+      }
+  }, [enqueueSnackbar]);
+
   useEffect(() => {
     if (appointmentId) {
       fetchAppointmentDetails();
+      if(profile?.role === 'doctor'){
+        fetchPharmacies();
+      }
     }
-  }, [appointmentId, fetchAppointmentDetails]);
+  }, [appointmentId, fetchAppointmentDetails, fetchPharmacies, profile?.role]);
 
   const profile = useSelector((state) => state.auth.profile);
   const isDoctorView =
@@ -133,6 +150,9 @@ const AppointmentDetailsPage = () => {
     setIsUpdating(true);
     const formData = new FormData();
     formData.append("prescription", prescriptionFile);
+    if (selectedPharmacy) {
+      formData.append("pharmacy_id", selectedPharmacy);
+    }
 
     try {
       await appointmentService.uploadPrescription(appointmentId, formData);
@@ -140,6 +160,7 @@ const AppointmentDetailsPage = () => {
         variant: "success",
       });
       setPrescriptionFile(null);
+      setSelectedPharmacy('');
       if (fileInputRef.current) fileInputRef.current.value = "";
       fetchAppointmentDetails();
     } catch (err) {
@@ -487,6 +508,21 @@ const AppointmentDetailsPage = () => {
 
                 {canDoctorUploadPrescription && (
                   <Box sx={{ mb: 2 }}>
+                    
+                      <FormControl fullWidth sx={{ mb: 2 }}>
+                         <InputLabel id="pharmacy-select-label">Assign to Pharmacy (Optional)</InputLabel>
+                         <Select
+                           labelId="pharmacy-select-label"
+                           value={selectedPharmacy}
+                           label="Assign to Pharmacy (Optional)"
+                           onChange={(e) => setSelectedPharmacy(e.target.value)}
+                        >
+                           <MenuItem value=""><em>None</em></MenuItem>
+                           {pharmacies.map(p => (
+                               <MenuItem key={p.id} value={p.id}>{p.name}</MenuItem>
+                          ))}
+                         </Select>
+                       </FormControl>
                     <Button
                       variant="contained"
                       component="label"
@@ -525,6 +561,12 @@ const AppointmentDetailsPage = () => {
                       </Box>
                     )}
                   </Box>
+                )}
+
+                { isPatientView && appointment.pharmacy_id && (
+                  <Alert severity="info">
+                    Prescription sent to pharmacy: <strong>{pharmacies.find(p => p.id === appointment.pharmacy_id)?.name || 'N/A'}</strong>
+                  </Alert>
                 )}
 
                 {canDoctorComplete && !appointment.prescription_path && (

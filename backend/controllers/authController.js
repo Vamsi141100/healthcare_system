@@ -39,6 +39,14 @@ const registerUser = async (req, res, next) => {
       email,
       role: "patient",
     };
+    
+    
+    sendEmail({
+        to: newUser.email,
+        subject: 'Welcome to Health Hub!',
+        text: `Hi ${newUser.name},\n\nWelcome to Health Hub! Your account has been created successfully. You can now log in and start managing your health.\n\nBest,\nThe Health Hub Team`,
+        html: `<p>Hi ${newUser.name},</p><p>Welcome to <strong>Health Hub</strong>! Your account has been created successfully. You can now log in and start managing your health.</p><p>Best,<br>The Health Hub Team</p>`,
+    });
 
     res.status(201).json({
       ...newUser,

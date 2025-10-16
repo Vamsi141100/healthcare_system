@@ -18,6 +18,7 @@ const labRoutes = require('./routes/labRoutes');
 const medicationRoutes = require('./routes/medicationRoutes');
 const paymentRoutes = require('./routes/paymentRoutes');
 const insuranceRoutes = require('./routes/insuranceRoutes');
+const pharmacyRoutes = require('./routes/pharmacyRoutes');
 
 const { errorHandler } = require('./middleware/errorMiddleware');
 
@@ -63,6 +64,7 @@ app.use('/api/labs', labRoutes);
 app.use('/api/medications', medicationRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/insurance', insuranceRoutes);
+app.use('/api/pharmacies', pharmacyRoutes);
 
 app.use(errorHandler);
 
