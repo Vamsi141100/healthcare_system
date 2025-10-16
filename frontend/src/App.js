@@ -205,6 +205,8 @@ function App() {
               }
             />
 
+            <Route path="/payment/success" element={<PaymentSuccessPage />} />
+
             {}
 
             {}

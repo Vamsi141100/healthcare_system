@@ -16,6 +16,7 @@ const statsRoutes = require('./routes/statsRoutes');
 const serviceRoutes = require('./routes/serviceRoutes');
 const labRoutes = require('./routes/labRoutes');
 const medicationRoutes = require('./routes/medicationRoutes');
+const paymentRoutes = require('./routes/paymentRoutes');
 
 const { errorHandler } = require('./middleware/errorMiddleware');
 
@@ -59,6 +60,7 @@ app.use('/api/stats', statsRoutes);
 app.use('/api/services', serviceRoutes);
 app.use('/api/labs', labRoutes);
 app.use('/api/medications', medicationRoutes);
+app.use('/api/payments', paymentRoutes);
 
 app.use(errorHandler);
 

@@ -79,6 +79,28 @@ CREATE TABLE support_tickets (
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
+CREATE TABLE insurance_claims (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    patient_id INT NOT NULL,
+    appointment_id INT UNIQUE NOT NULL, -- Each appointment can only have one claim
+    provider_name VARCHAR(255) NOT NULL,
+    policy_number VARCHAR(255) NOT NULL,
+    plan_type VARCHAR(255),
+    insured_name VARCHAR(255) NOT NULL,
+    insured_dob DATE NOT NULL,
+    insured_sex ENUM('Male', 'Female', 'Other') NOT NULL,
+    relationship_to_patient VARCHAR(100),
+    invoice_path VARCHAR(255) NOT NULL,
+    insurance_card_front_path VARCHAR(255) NOT NULL,
+    government_id_path VARCHAR(255) NOT NULL,
+    status ENUM('pending', 'approved', 'rejected') DEFAULT 'pending',
+    submitted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    reviewed_at TIMESTAMP NULL,
+    admin_notes TEXT,
+    FOREIGN KEY (patient_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (appointment_id) REFERENCES appointments(id) ON DELETE CASCADE
+);
+
 -- Potentially add a table for Personal Health Records (PHR)
 -- CREATE TABLE health_records ( ... ); This needs careful design based on requirements
 

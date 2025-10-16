@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useParams } from "react-router-dom";
 import { useSelector } from "react-redux";
 import appointmentService from "../services/appointmentService";
+import paymentService from "../services/paymentService";
 import {
   Container,
   Typography,
@@ -150,24 +151,18 @@ const AppointmentDetailsPage = () => {
   };
 
   const handlePayment = async () => {
-    if (!isPatientView) return;
-    setIsPaying(true);
-    try {
-      const updatedAppointment = await appointmentService.markAsPaid(
-        appointmentId
-      );
-      setAppointment(updatedAppointment);
-      enqueueSnackbar("Payment successful! Appointment Confirmed.", {
-        variant: "success",
-      });
-    } catch (error) {
-      console.error("Payment Error:", error);
-      const message =
-        error?.response?.data?.message || "Payment failed. Please try again.";
-      enqueueSnackbar(message, { variant: "error" });
-    } finally {
-      setIsPaying(false);
-    }
+      if (!isPatientView) return;
+      setIsPaying(true);
+      try {
+          const session = await paymentService.createCheckoutSession(appointmentId);
+          
+          window.location.href = session.url;
+      } catch (error) {
+          console.error("Payment Error:", error);
+          const message = error?.response?.data?.message || "Payment failed. Please try again.";
+          enqueueSnackbar(message, { variant: "error" });
+          setIsPaying(false);
+      }
   };
 
   if (isLoading)
