@@ -18,7 +18,7 @@ import {
   TextField,
   Stack,
 } from "@mui/material";
-import Modal from '@mui/material/Modal';
+import Modal from "@mui/material/Modal";
 import EventIcon from "@mui/icons-material/Event";
 import PersonIcon from "@mui/icons-material/Person";
 import MedicalInformationIcon from "@mui/icons-material/MedicalInformation";
@@ -30,7 +30,8 @@ import UploadFileIcon from "@mui/icons-material/UploadFile";
 import AttachMoneyIcon from "@mui/icons-material/AttachMoney";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import { useSnackbar } from "notistack";
-import VideoCallSelfHosted from '../components/video/VideoCallSelfHosted';
+import VideoCallSelfHosted from "../components/video/VideoCallSelfHosted";
+import { Link as RouterLink } from "react-router-dom";
 
 const AppointmentDetailsPage = () => {
   const { id: appointmentId } = useParams();
@@ -85,14 +86,15 @@ const AppointmentDetailsPage = () => {
   const isPatientView =
     user?.role === "patient" && appointment?.patient_id === user?.id;
 
-    const canJoinVideo = appointment &&
-    appointment.status === 'confirmed' && 
-    (isDoctorView || (isPatientView && appointment.payment_status === 'paid'));
-    const handleLeaveCall = () => {
-      setShowVideoCall(false);
-       enqueueSnackbar("Left the video call", { variant: 'info' });
-       fetchAppointmentDetails(); 
-   };
+  const canJoinVideo =
+    appointment &&
+    appointment.status === "confirmed" && 
+    (isDoctorView || (isPatientView && appointment.payment_status === "paid"));
+  const handleLeaveCall = () => {
+    setShowVideoCall(false);
+    enqueueSnackbar("Left the video call", { variant: "info" });
+    fetchAppointmentDetails(); 
+  };
 
   const handleDoctorUpdate = async (fieldData) => {
     if (!isDoctorView) return;
@@ -151,18 +153,19 @@ const AppointmentDetailsPage = () => {
   };
 
   const handlePayment = async () => {
-      if (!isPatientView) return;
-      setIsPaying(true);
-      try {
-          const session = await paymentService.createCheckoutSession(appointmentId);
-          
-          window.location.href = session.url;
-      } catch (error) {
-          console.error("Payment Error:", error);
-          const message = error?.response?.data?.message || "Payment failed. Please try again.";
-          enqueueSnackbar(message, { variant: "error" });
-          setIsPaying(false);
-      }
+    if (!isPatientView) return;
+    setIsPaying(true);
+    try {
+      const session = await paymentService.createCheckoutSession(appointmentId);
+      
+      window.location.href = session.url;
+    } catch (error) {
+      console.error("Payment Error:", error);
+      const message =
+        error?.response?.data?.message || "Payment failed. Please try again.";
+      enqueueSnackbar(message, { variant: "error" });
+      setIsPaying(false);
+    }
   };
 
   if (isLoading)
@@ -216,7 +219,6 @@ const AppointmentDetailsPage = () => {
 
       <Grid container spacing={3} justifyContent="center" alignItems="center">
         <Stack spacing={3}>
-          
           <Grid>
             <Card>
               <CardContent>
@@ -351,11 +353,9 @@ const AppointmentDetailsPage = () => {
             </Card>
           </Grid>
 
-          
           <Grid>
             <Card>
               <CardContent>
-                
                 <Typography
                   variant="h6"
                   gutterBottom
@@ -432,13 +432,15 @@ const AppointmentDetailsPage = () => {
 
                 {canJoinVideo && !showVideoCall && (
                   <Button
-                      variant="contained" color="primary"
-                      startIcon={<VideocamIcon />}
-                        onClick={() => setShowVideoCall(true)}
-                      fullWidth sx={{ mb: 2 }}
-                    >
-                        Join Secure Video Call
-                    </Button>
+                    variant="contained"
+                    color="primary"
+                    startIcon={<VideocamIcon />}
+                    onClick={() => setShowVideoCall(true)}
+                    fullWidth
+                    sx={{ mb: 2 }}
+                  >
+                    Join Secure Video Call
+                  </Button>
                 )}
                 {
 
@@ -446,7 +448,6 @@ const AppointmentDetailsPage = () => {
 
                 <Divider sx={{ my: 2 }} />
 
-                
                 <Typography
                   variant="h6"
                   gutterBottom
@@ -533,7 +534,6 @@ const AppointmentDetailsPage = () => {
                   </Alert>
                 )}
 
-                
                 {isDoctorView && appointment.status === "confirmed" && (
                   <Button
                     variant="contained"
@@ -552,25 +552,48 @@ const AppointmentDetailsPage = () => {
           </Grid>
         </Stack>
       </Grid>
+
+      {isPatientView && appointment.status === "completed" && (
+        <Box sx={{ mt: 3, textAlign: "center" }}>
+          <Button
+            variant="contained"
+            color="secondary"
+            component={RouterLink}
+            to={`/submit-claim/${appointmentId}`}
+          >
+            File Insurance Claim for this Appointment
+          </Button>
+        </Box>
+      )}
+
       <Modal open={showVideoCall} >
-        <Box sx={{
-            position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', 
-            width: { xs: '95vw', sm: '90vw', md: '80vw' }, 
-            height: { xs: '80vh', sm: '85vh', md: '90vh' }, 
-            maxWidth: '1400px', maxHeight: '950px',
-            bgcolor: 'background.paper', boxShadow: 24,
-            p: { xs: 0.5, md: 1 }, outline: 'none', borderRadius: 1,
-            display: 'flex', 
-        }}>
-            {}
+        <Box
+          sx={{
+            position: "absolute",
+            top: "50%",
+            left: "50%",
+            transform: "translate(-50%, -50%)", 
+            width: { xs: "95vw", sm: "90vw", md: "80vw" }, 
+            height: { xs: "80vh", sm: "85vh", md: "90vh" }, 
+            maxWidth: "1400px",
+            maxHeight: "950px",
+            bgcolor: "background.paper",
+            boxShadow: 24,
+            p: { xs: 0.5, md: 1 },
+            outline: "none",
+            borderRadius: 1,
+            display: "flex", 
+          }}
+        >
+          {}
           {showVideoCall && (
-              <VideoCallSelfHosted
-                  roomName={`appt-${appointmentId}`} 
-                  onLeaveCall={handleLeaveCall}
-                />
-            )}
-      </Box>
-    </Modal>
+            <VideoCallSelfHosted
+              roomName={`appt-${appointmentId}`} 
+              onLeaveCall={handleLeaveCall}
+            />
+          )}
+        </Box>
+      </Modal>
     </Container>
   );
 };

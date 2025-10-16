@@ -32,6 +32,19 @@ const prescriptionStorage = multer.diskStorage({
   },
 });
 
+const claimStorage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    const uploadPath = path.join(__dirname, "../uploads/claims/");
+    ensureDirExists(uploadPath);
+    cb(null, uploadPath);
+ },
+ filename: function (req, file, cb) {
+   const appointmentId = req.params.appointmentId || 'unknown';
+   const uniqueSuffix = `${req.user.id}-${appointmentId}-${Date.now()}`;
+   cb(null, `${file.fieldname}-${uniqueSuffix}${path.extname(file.originalname)}`);
+ },
+});
+
 const fileFilter = (req, file, cb) => {
   const allowedTypes = /jpeg|jpg|png|gif|pdf|doc|docx|zip/;
   const mimetype = allowedTypes.test(file.mimetype);
@@ -62,7 +75,13 @@ const uploadPrescription = multer({
   limits: { fileSize: 1024 * 1024 * 5 },
   fileFilter: fileFilter,
 });
+const uploadClaimDocs = multer({
+  storage: claimStorage,
+  limits: { fileSize: 1024 * 1024 * 10 }, 
+  fileFilter: fileFilter,
+});
 module.exports = {
   uploadApplicationDoc,
   uploadPrescription,
+  uploadClaimDocs,
 };

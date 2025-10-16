@@ -25,6 +25,8 @@ import StatsPage from "./pages/StatsPage";
 import NotFoundPage from "./pages/NotFoundPage";
 import LabTestPage from "./pages/LabTestPage";
 import MedicationPage from "./pages/MedicationPage";
+import PaymentSuccessPage from './pages/PaymentSuccessPage';
+import InsuranceClaimPage from "./pages/InsuranceClaimPage";
 
 import { Box, CircularProgress, Container } from "@mui/material";
 
@@ -206,6 +208,14 @@ function App() {
             />
 
             <Route path="/payment/success" element={<PaymentSuccessPage />} />
+            <Route
+              path="/submit-claim/:appointmentId"
+              element={
+                <RequireAuth roles={["patient"]}>
+                  <InsuranceClaimPage />
+                </RequireAuth>
+              }
+            />
 
             {}
 

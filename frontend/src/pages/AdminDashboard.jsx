@@ -4,10 +4,12 @@ import PeopleIcon from "@mui/icons-material/People";
 import EventIcon from "@mui/icons-material/Event";
 import AssignmentIndIcon from "@mui/icons-material/AssignmentInd";
 import SupportAgentIcon from "@mui/icons-material/SupportAgent";
+import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
 import AdminUserList from "../components/admin/AdminUserList";
 import AdminAppointmentList from "../components/admin/AdminAppointmentList";
 import AdminApplicationList from "../components/admin/AdminApplicationList";
 import AdminSupportList from "../components/admin/AdminSupportList";
+import AdminClaimList from "../components/admin/AdminClaimList";
 
 function TabPanel(props) {
   const { children, value, index, ...other } = props;
@@ -77,6 +79,13 @@ const AdminDashboard = () => {
               id="admin-tab-3"
               aria-controls="admin-tabpanel-3"
             />
+            <Tab
+              label="Insurance Claims"
+              icon={<ReceiptLongIcon />}
+              iconPosition="start"
+              id="admin-tab-4"
+              aria-controls="admin-tabpanel-4"
+            />
           </Tabs>
         </Box>
 
@@ -91,6 +100,9 @@ const AdminDashboard = () => {
         </TabPanel>
         <TabPanel value={currentTab} index={3}>
           <AdminSupportList /> 
+        </TabPanel>
+        <TabPanel value={currentTab} index={4}>
+          <AdminClaimList /> 
         </TabPanel>
       </Paper>
     </Container>

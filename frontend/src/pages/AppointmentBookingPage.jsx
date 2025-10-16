@@ -20,13 +20,13 @@ import {
 import { Formik, Form, Field } from "formik";
 import * as Yup from "yup";
 import {
-  Select as FormikSelect,
   TextField as FormikTextField,
 } from "formik-mui";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { DateTimePicker } from "@mui/x-date-pickers/DateTimePicker";
 import { useSnackbar } from "notistack";
+import { Select as FormikSelect } from "formik-mui";
 
 const BookingSchema = Yup.object().shape({
   specialization: Yup.string().required("Please select a specialization first"),
@@ -130,7 +130,7 @@ const AppointmentBookingPage = () => {
         doctor_id: parseInt(values.doctor_id, 10),
         service_id: values.service_id ? parseInt(values.service_id, 10) : null,
         scheduled_time: values.scheduled_time
-          ? `${values.scheduled_time.getFullYear()}-${String(values.scheduled_time.getMonth() + 1).padStart(2, '0')}-${String(values.scheduled_time.getDate()).padStart(2, '0')} ${String(values.scheduled_time.getHours()).padStart(2, '0')}:${String(values.scheduled_time.getMinutes()).padStart(2, '0')}:00`
+          ? new Date(values.scheduled_time.getTime() - values.scheduled_time.getTimezoneOffset() * 60000).toISOString().slice(0, 19).replace('T', ' ')
           : null,
         patient_notes: values.patient_notes || null,
       };
