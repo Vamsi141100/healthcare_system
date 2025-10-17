@@ -37,7 +37,7 @@ import { Link as RouterLink } from "react-router-dom";
 
 const AppointmentDetailsPage = () => {
   const { id: appointmentId } = useParams();
-  const { user } = useSelector((state) => state.auth);
+  const { user, profile } = useSelector((state) => state.auth);
   const [appointment, setAppointment] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
@@ -96,7 +96,6 @@ const AppointmentDetailsPage = () => {
     }
   }, [appointmentId, fetchAppointmentDetails, fetchPharmacies, profile?.role]);
 
-  const profile = useSelector((state) => state.auth.profile);
   const isDoctorView =
     user?.role === "doctor" &&
     appointment?.doctor_profile_id === user?.profile?.id;
@@ -238,8 +237,8 @@ const AppointmentDetailsPage = () => {
         Appointment Details #{appointment.id}
       </Typography>
 
-      <Grid container spacing={3} justifyContent="center" alignItems="center">
-        <Stack spacing={3}>
+      <Grid container  justifyContent="center" alignItems="center">
+        <Stack>
           <Grid>
             <Card>
               <CardContent>

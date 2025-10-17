@@ -181,7 +181,7 @@ const AppointmentBookingPage = () => {
         >
           {({ isSubmitting, setFieldValue, values, errors, touched }) => (
             <Form noValidate>
-              <Grid container spacing={3} justifyContent="center" alignItems="center">
+              <Grid container justifyContent="center" alignItems="center">
                 <Stack spacing={3}>
                   <Grid>
                     <FormControl
