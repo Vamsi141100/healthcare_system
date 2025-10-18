@@ -1,6 +1,7 @@
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const pool = require("../config/db");
+const { sendEmail } = require('../utils/emailService'); 
 
 const generateToken = (id, role) => {
   return jwt.sign({ id, role }, process.env.JWT_SECRET, {
@@ -39,7 +40,7 @@ const registerUser = async (req, res, next) => {
       email,
       role: "patient",
     };
-    
+
     
     sendEmail({
         to: newUser.email,

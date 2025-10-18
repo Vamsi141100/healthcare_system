@@ -11,7 +11,6 @@ const createAppointment = async (req, res, next) => {
   }
 
   try {
-    
     let fee = null;
     if (service_id) {
       const [
@@ -22,7 +21,6 @@ const createAppointment = async (req, res, next) => {
       if (services.length > 0 && services[0].base_fee) {
         fee = services[0].base_fee;
       }
-    } else {
     }
 
     const [
@@ -48,26 +46,25 @@ const createAppointment = async (req, res, next) => {
     ]);
 
     
-   
-   const [detailsForEmail] = await pool.query(
-      `SELECT a.scheduled_time, p.email as patient_email, d_user.name as doctor_name
-       FROM appointments a
-       JOIN users p ON a.patient_id = p.id
-       LEFT JOIN doctors doc ON a.doctor_id = doc.id
-       LEFT JOIN users d_user ON doc.user_id = d_user.id
-       WHERE a.id = ?`, [result.insertId]
-    );
-
-   if(detailsForEmail.length > 0) {
-     const details = detailsForEmail[0];
-     const scheduledTime = new Date(details.scheduled_time).toLocaleString();
-     sendEmail({
-         to: details.patient_email,
-         subject: `Appointment Requested with Dr. ${details.doctor_name}`,
-         text: `Your appointment request for ${scheduledTime} has been submitted and is pending confirmation.`,
-         html: `<p>Your appointment request for <strong>${scheduledTime}</strong> has been submitted and is pending confirmation.</p>`,
-     });
-   }
+    const [detailsForEmail] = await pool.query(
+        `SELECT a.scheduled_time, p.email as patient_email, d_user.name as doctor_name
+         FROM appointments a
+         JOIN users p ON a.patient_id = p.id
+         LEFT JOIN doctors doc ON a.doctor_id = doc.id
+         LEFT JOIN users d_user ON doc.user_id = d_user.id
+         WHERE a.id = ?`, [result.insertId]
+     );
+ 
+     if(detailsForEmail.length > 0) {
+       const details = detailsForEmail[0];
+       const scheduledTime = new Date(details.scheduled_time).toLocaleString();
+       sendEmail({
+           to: details.patient_email,
+           subject: `Appointment Requested with Dr. ${details.doctor_name}`,
+           text: `Your appointment request for ${scheduledTime} has been submitted and is pending confirmation by the doctor.`,
+           html: `<p>Your appointment request for <strong>${scheduledTime}</strong> has been submitted and is pending confirmation by the doctor.</p>`,
+       });
+     }
 
     res.status(201).json(newAppointment[0]);
   } catch (error) {
