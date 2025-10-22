@@ -22,16 +22,8 @@ const updateAppointment = async (id, updateData) => {
   return response.data;
 };
 
-const uploadPrescription = async (id, formData) => {
-  const response = await axiosInstance.post(
-    API_URL + id + "/prescription",
-    formData,
-    {
-      headers: {
-        "Content-Type": "multipart/form-data",
-      },
-    }
-  );
+const generatePrescription = async (id, prescriptionData) => {
+  const response = await axiosInstance.post(API_URL + id + "/prescription", prescriptionData);
   return response.data;
 };
 
@@ -66,16 +58,24 @@ const markAsPaid = async (id) => {
   const response = await axiosInstance.put(API_URL + id + "/pay");
   return response.data;
 };
+const downloadInvoice = async (id) => {
+  const response = await axiosInstance.get(API_URL + id + "/invoice", {
+    responseType: 'blob', 
+  });
+  return response.data;
+};
 
 const appointmentService = {
   createAppointment,
   getMyAppointments,
   getAppointmentById,
   updateAppointment,
-  uploadPrescription,
+  
+  generatePrescription,
   getAvailableDoctors,
   getServices,
   markAsPaid,
+  downloadInvoice,
 };
 
 export default appointmentService;

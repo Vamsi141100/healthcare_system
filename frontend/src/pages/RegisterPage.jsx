@@ -23,6 +23,9 @@ const RegisterSchema = Yup.object().shape({
   email: Yup.string()
     .email("Invalid email address")
     .required("Email is required"),
+  dob: Yup.date() 
+    .required("Date of Birth is required")
+    .max(new Date(), "Date of Birth cannot be in the future."),
   password: Yup.string()
     .min(6, "Password must be at least 6 characters")
     .required("Password is required"),
@@ -56,8 +59,9 @@ const RegisterPage = () => {
   }, [user, isError, isSuccess, navigate, dispatch]);
 
   const handleSubmit = (values) => {
+    const dobFormatted = new Date(values.dob).toISOString().split('T')[0];
     const { confirmPassword, ...userData } = values;
-    dispatch(register(userData));
+    dispatch(register({ ...userData, dob: dobFormatted }));
   };
 
   const handleFocus = () => {
@@ -68,40 +72,20 @@ const RegisterPage = () => {
 
   return (
     <Container component="main" maxWidth="xs">
-      <Box
-        sx={{
-          marginTop: 8,
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-        }}
-      >
-        <PersonAddIcon
-          sx={{
-            m: 1,
-            bgcolor: "primary.main",
-            p: 1,
-            borderRadius: "50%",
-            color: "white",
-          }}
-        />
+      <Box sx={{ marginTop: 8, display: "flex", flexDirection: "column", alignItems: "center" }}>
+        <PersonAddIcon sx={{ m: 1, bgcolor: "primary.main", p: 1, borderRadius: "50%", color: "white" }} />
         <Typography component="h1" variant="h5">
-          Sign Up ✨
+          Create Your Account ✨
         </Typography>
 
         {isLoading && <LoadingSpinner />}
-        {isError && message && (
-          <Alert severity="error" sx={{ width: "100%", mt: 2 }}>
-            {message}
-          </Alert>
-        )}
-        
-        
+        {isError && message && <Alert severity="error" sx={{ width: "100%", mt: 2 }}>{message}</Alert>}
 
         <Formik
           initialValues={{
             name: "",
             email: "",
+            dob: "", 
             password: "",
             confirmPassword: "",
           }}
@@ -111,9 +95,8 @@ const RegisterPage = () => {
           {() => (
             <Form noValidate>
               <Box sx={{ mt: 3 }}>
-                <Grid container spacing={2} justifyContent="center" alignItems="center">
-                <Stack spacing={3}>
-                  <Grid>
+                <Grid container spacing={2}>
+                  <Grid item xs={12}>
                     <Field
                       component={FormikTextField}
                       name="name"
@@ -125,7 +108,7 @@ const RegisterPage = () => {
                       onFocus={handleFocus}
                     />
                   </Grid>
-                  <Grid>
+                  <Grid item xs={12}>
                     <Field
                       component={FormikTextField}
                       required
@@ -137,7 +120,19 @@ const RegisterPage = () => {
                       onFocus={handleFocus}
                     />
                   </Grid>
-                  <Grid>
+                  {}
+                  <Grid item xs={12}>
+                     <Field
+                        component={FormikTextField}
+                        name="dob"
+                        label="Date of Birth"
+                        type="date"
+                        required
+                        fullWidth
+                        InputLabelProps={{ shrink: true }} 
+                     />
+                  </Grid>
+                  <Grid item xs={12}>
                     <Field
                       component={FormikTextField}
                       required
@@ -146,11 +141,10 @@ const RegisterPage = () => {
                       label="Password (min 6 chars)"
                       type="password"
                       id="password"
-                      autoComplete="new-password"
                       onFocus={handleFocus}
                     />
                   </Grid>
-                  <Grid>
+                  <Grid item xs={12}>
                     <Field
                       component={FormikTextField}
                       required
@@ -161,7 +155,6 @@ const RegisterPage = () => {
                       id="confirmPassword"
                     />
                   </Grid>
-                  </Stack>
                 </Grid>
                 <Button
                   type="submit"
@@ -172,14 +165,12 @@ const RegisterPage = () => {
                 >
                   {isLoading ? "Registering..." : "Sign Up"}
                 </Button>
-                <Grid container justifyContent="center" alignItems="center">
-                <Stack spacing={3}>
-                  <Grid>
+                <Grid container justifyContent="flex-end">
+                  <Grid item>
                     <Link component={RouterLink} to="/login" variant="body2">
                       Already have an account? Sign in
                     </Link>
                   </Grid>
-                  </Stack>
                 </Grid>
               </Box>
             </Form>

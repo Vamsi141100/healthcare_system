@@ -70,13 +70,14 @@ const stripeWebhook = async (req, res, next) => {
     if (event.type === 'checkout.session.completed') {
         const session = event.data.object;
         const { appointmentId } = session.metadata;
+        const paymentIntentId = session.payment_intent;
 
         console.log(`Payment successful for appointment ID: ${appointmentId}`);
 
         try {
            await pool.query(
-             "UPDATE appointments SET payment_status = 'paid', status = 'confirmed', updated_at = NOW() WHERE id = ? AND payment_status = 'unpaid'",
-              [appointmentId]
+             "UPDATE appointments SET payment_status = 'paid', status = 'confirmed', updated_at = NOW(), stripe_payment_intent_id = ? WHERE id = ? AND payment_status = 'unpaid'",
+              [paymentIntentId, appointmentId]
            );
            console.log(`Appointment ${appointmentId} marked as paid.`);
         } catch(dbError) {

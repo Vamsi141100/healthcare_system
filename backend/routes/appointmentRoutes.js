@@ -5,7 +5,9 @@ const {
   getMyAppointments,
   getAppointmentById,
   updateAppointment,
-  uploadPrescriptionForAppointment,
+  
+  generateAndAddPrescription,
+  downloadAppointmentInvoice,
   markAppointmentAsPaid,
 } = require("../controllers/appointmentController");
 const { protect, checkRole } = require("../middleware/authMiddleware");
@@ -30,8 +32,14 @@ router.post(
   "/:id/prescription",
   protect,
   checkRole(["doctor"]),
-  uploadPrescription.single("prescription"),
-  uploadPrescriptionForAppointment
+  generateAndAddPrescription
+);
+
+router.get(
+  "/:id/invoice",
+  protect,
+  checkRole(["patient", "admin"]),
+  downloadAppointmentInvoice
 );
 
 module.exports = router;

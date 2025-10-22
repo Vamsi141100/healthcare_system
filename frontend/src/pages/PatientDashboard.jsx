@@ -33,8 +33,8 @@ import ScienceIcon from "@mui/icons-material/Science";
 import PendingActionsIcon from "@mui/icons-material/PendingActions";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
-import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
-import SpeakerNotesOffIcon from '@mui/icons-material/SpeakerNotesOff';
+import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
+import SpeakerNotesOffIcon from "@mui/icons-material/SpeakerNotesOff";
 
 import LoadingSpinner from "../components/common/LoadingSpinner";
 import ErrorMessage from "../components/common/ErrorMessage";
@@ -44,7 +44,9 @@ import applicationService from "../services/applicationService";
 const WelcomeHeader = styled(Paper)(({ theme }) => ({
   padding: theme.spacing(3, 4),
   marginBottom: theme.spacing(4),
-  background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${alpha(theme.palette.primary.dark, 0.8)} 100%)`,
+  background: `linear-gradient(135deg, ${
+    theme.palette.primary.main
+  } 0%, ${alpha(theme.palette.primary.dark, 0.8)} 100%)`,
   color: theme.palette.common.white,
   borderRadius: theme.shape.borderRadius * 2,
 }));
@@ -53,8 +55,8 @@ const DashboardCard = styled(Card)(({ theme }) => ({
   height: "100%",
   borderRadius: theme.shape.borderRadius * 2,
   boxShadow: `0 4px 20px ${alpha(theme.palette.common.black, 0.05)}`,
-  display: 'flex',
-  flexDirection: 'column',
+  display: "flex",
+  flexDirection: "column",
 }));
 
 const CardHeaderStyled = styled(Box)(({ theme }) => ({
@@ -67,14 +69,40 @@ const CardHeaderStyled = styled(Box)(({ theme }) => ({
 }));
 
 const EmptyStateBox = styled(Box)(({ theme }) => ({
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    textAlign: 'center',
-    padding: theme.spacing(4),
-    minHeight: '150px',
-    color: theme.palette.text.secondary,
+  display: "flex",
+  flexDirection: "column",
+  alignItems: "center",
+  justifyContent: "center",
+  textAlign: "center",
+  padding: theme.spacing(4),
+  minHeight: "150px",
+  color: theme.palette.text.secondary,
+}));
+
+const StatusBadge = styled(Typography)(({ theme, status }) => ({
+  display: 'inline-block',
+  padding: '2px 8px',
+  borderRadius: '12px',
+  fontSize: '0.75rem',
+  fontWeight: 500,
+  backgroundColor: (() => {
+    switch (status) {
+      case 'pending': return alpha(theme.palette.warning.main, 0.1);
+      case 'confirmed': return alpha(theme.palette.info.main, 0.1);
+      case 'completed': return alpha(theme.palette.success.main, 0.1);
+      case 'cancelled': return alpha(theme.palette.error.main, 0.1);
+      default: return alpha(theme.palette.grey[500], 0.1);
+    }
+  })(),
+  color: (() => {
+    switch (status) {
+      case 'pending': return theme.palette.warning.main;
+      case 'confirmed': return theme.palette.info.main;
+      case 'completed': return theme.palette.success.main;
+      case 'cancelled': return theme.palette.error.main;
+      default: return theme.palette.grey[500];
+    }
+  })()
 }));
 
 const PatientDashboard = () => {
@@ -157,11 +185,16 @@ const PatientDashboard = () => {
 
   const getStatusChipColor = (status) => {
     switch (status) {
-      case "pending": return "warning";
-      case "confirmed": return "info";
-      case "completed": return "success";
-      case "cancelled": return "error";
-      default: return "default";
+      case "pending":
+        return "warning";
+      case "confirmed":
+        return "info";
+      case "completed":
+        return "success";
+      case "cancelled":
+        return "error";
+      default:
+        return "default";
     }
   };
   
@@ -179,7 +212,9 @@ const PatientDashboard = () => {
         </Typography>
       </WelcomeHeader>
 
-      {error && <ErrorMessage message={error} severity="error" sx={{ mb: 3 }} />}
+      {error && (
+        <ErrorMessage message={error} severity="error" sx={{ mb: 3 }} />
+      )}
 
       <Grid container spacing={3}>
         {}
@@ -190,7 +225,9 @@ const PatientDashboard = () => {
               <DashboardCard>
                 <CardHeaderStyled>
                   <EventAvailableIcon color="primary" />
-                  <Typography variant="h6" component="h2">Upcoming Appointments</Typography>
+                  <Typography variant="h6" component="h2">
+                    Upcoming Appointments
+                  </Typography>
                 </CardHeaderStyled>
                 <Divider sx={{ mx: 2 }} />
                 <CardContent sx={{ flexGrow: 1, p: 0 }}>
@@ -200,25 +237,47 @@ const PatientDashboard = () => {
                         <ListItem
                           key={app.id}
                           secondaryAction={
-                            <Button size="small" component={RouterLink} to={`/appointments/${app.id}`}>View</Button>
+                            <Button
+                              size="small"
+                              component={RouterLink}
+                              to={`/appointments/${app.id}`}
+                            >
+                              View
+                            </Button>
                           }
                           sx={{ px: 2, py: 1.5 }}
                         >
-                          <ListItemIcon sx={{ minWidth: 'auto', mr: 2 }}>
-                            <Box sx={{
+                          <ListItemIcon sx={{ minWidth: "auto", mr: 2 }}>
+                            <Box
+                              sx={{
                                 p: 1,
-                                borderRadius: '50%',
-                                display: 'flex',
-                                bgcolor: alpha(theme.palette.primary.main, 0.1)
-                            }}>
-                                <EventAvailableIcon color="primary" fontSize="small" />
+                                borderRadius: "50%",
+                                display: "flex",
+                                bgcolor: alpha(theme.palette.primary.main, 0.1),
+                              }}
+                            >
+                              <EventAvailableIcon
+                                color="primary"
+                                fontSize="small"
+                              />
                             </Box>
                           </ListItemIcon>
                           <ListItemText
                             primary={`${app.service_name || "Consultation"} with ${app.doctor_name || "Doctor"}`}
-                            secondary={<>
-                                {new Date(app.scheduled_time).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })} - <Chip label={app.status} size="small" color={getStatusChipColor(app.status)} />
-                            </>}
+                            secondary={
+                              <Box component="span" sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                                <Typography component="span" variant="body2">
+                                  {new Date(app.scheduled_time).toLocaleDateString("en-US", {
+                                    year: "numeric",
+                                    month: "long",
+                                    day: "numeric",
+                                  })}
+                                </Typography>
+                                <StatusBadge component="span" status={app.status}>
+                                  {app.status}
+                                </StatusBadge>
+                              </Box>
+                            }
                           />
                         </ListItem>
                       ))}
@@ -226,18 +285,32 @@ const PatientDashboard = () => {
                   ) : (
                     <EmptyStateBox>
                       <SpeakerNotesOffIcon sx={{ fontSize: 40, mb: 1 }} />
-                      <Typography variant="body1">No upcoming appointments.</Typography>
-                      <Typography variant="body2">Time to book your next check-up?</Typography>
+                      <Typography variant="body1">
+                        No upcoming appointments.
+                      </Typography>
+                      <Typography variant="body2">
+                        Time to book your next check-up?
+                      </Typography>
                     </EmptyStateBox>
                   )}
                 </CardContent>
                 <Divider />
-                <CardActions sx={{ justifyContent: 'space-between', p: 1.5 }}>
-                  <Button component={RouterLink} to="/book-appointment" size="small" startIcon={<AddCircleOutlineIcon />}>
+                <CardActions sx={{ justifyContent: "space-between", p: 1.5 }}>
+                  <Button
+                    component={RouterLink}
+                    to="/book-appointment"
+                    size="small"
+                    startIcon={<AddCircleOutlineIcon />}
+                  >
                     Book New Appointment
                   </Button>
-                  {upcomingAppointments.length > 0 && (
-                    <Button component={RouterLink} to="/my-appointments/upcoming" size="small" endIcon={<ArrowForwardIcon />}>
+                  {upcomingAppointments.length > 3 && (
+                    <Button
+                      component={RouterLink}
+                      to="/my-appointments/upcoming"
+                      size="small"
+                      endIcon={<ArrowForwardIcon />}
+                    >
                       View All
                     </Button>
                   )}
@@ -263,7 +336,11 @@ const PatientDashboard = () => {
                           key={app.id}
                           secondaryAction={
                             
-                            <Stack direction="row" spacing={2} alignItems="center">
+                            <Stack
+                              direction="row"
+                              spacing={2}
+                              alignItems="center"
+                            >
                               <Chip
                                 label={app.status}
                                 size="small"
@@ -278,7 +355,11 @@ const PatientDashboard = () => {
                               </Button>
                             </Stack>
                           }
-                          sx={{ px: 2, py: 1.5, '& .MuiListItemSecondaryAction-root': { right: 16 } }} 
+                          sx={{
+                            px: 2,
+                            py: 1.5,
+                            "& .MuiListItemSecondaryAction-root": { right: 16 },
+                          }} 
                         >
                           <ListItemIcon sx={{ minWidth: "auto", mr: 2 }}>
                             <Box
@@ -293,16 +374,22 @@ const PatientDashboard = () => {
                               }}
                             >
                               {app.status === "completed" ? (
-                                <CheckCircleOutlineIcon color="success" fontSize="small" />
+                                <CheckCircleOutlineIcon
+                                  color="success"
+                                  fontSize="small"
+                                />
                               ) : (
-                                <HistoryIcon color="disabled" fontSize="small" />
+                                <HistoryIcon
+                                  color="disabled"
+                                  fontSize="small"
+                                />
                               )}
                             </Box>
                           </ListItemIcon>
                           <ListItemText
-                            primary={`${app.service_name || "Consultation"} with ${
-                              app.doctor_name || "Doctor"
-                            }`}
+                            primary={`${
+                              app.service_name || "Consultation"
+                            } with ${app.doctor_name || "Doctor"}`}
                             secondary={`${new Date(
                               app.scheduled_time
                             ).toLocaleDateString()}`}
@@ -314,7 +401,9 @@ const PatientDashboard = () => {
                   ) : (
                     <EmptyStateBox>
                       <SpeakerNotesOffIcon sx={{ fontSize: 40, mb: 1 }} />
-                      <Typography variant="body1">No past appointments found.</Typography>
+                      <Typography variant="body1">
+                        No past appointments found.
+                      </Typography>
                     </EmptyStateBox>
                   )}
                 </CardContent>
@@ -345,14 +434,56 @@ const PatientDashboard = () => {
             <Grid item xs={12}>
               <DashboardCard>
                 <CardHeaderStyled>
-                  <Typography variant="h6" component="h2">🚀 Quick Actions</Typography>
+                  <Typography variant="h6" component="h2">
+                    🚀 Quick Actions
+                  </Typography>
                 </CardHeaderStyled>
                 <CardContent>
                   <Grid container spacing={2}>
-                    <Grid item xs={12}><Button fullWidth variant="contained" component={RouterLink} to="/book-appointment" startIcon={<EventAvailableIcon />}>Book Appointment</Button></Grid>
-                    <Grid item xs={12}><Button fullWidth variant="outlined" component={RouterLink} to="/medications" startIcon={<MedicationIcon />}>Medication Delivery</Button></Grid>
-                    <Grid item xs={12}><Button fullWidth variant="outlined" component={RouterLink} to="/lab-tests" startIcon={<ScienceIcon />}>Lab Tests</Button></Grid>
-                    <Grid item xs={12}><Button fullWidth variant="outlined" component={RouterLink} to="/support" startIcon={<SupportAgentIcon />}>Help & Support</Button></Grid>
+                    <Grid item xs={12}>
+                      <Button
+                        fullWidth
+                        variant="contained"
+                        component={RouterLink}
+                        to="/book-appointment"
+                        startIcon={<EventAvailableIcon />}
+                      >
+                        Book Appointment
+                      </Button>
+                    </Grid>
+                    <Grid item xs={12}>
+                      <Button
+                        fullWidth
+                        variant="outlined"
+                        component={RouterLink}
+                        to="/medications"
+                        startIcon={<MedicationIcon />}
+                      >
+                        Medication Delivery
+                      </Button>
+                    </Grid>
+                    <Grid item xs={12}>
+                      <Button
+                        fullWidth
+                        variant="outlined"
+                        component={RouterLink}
+                        to="/lab-tests"
+                        startIcon={<ScienceIcon />}
+                      >
+                        Lab Tests
+                      </Button>
+                    </Grid>
+                    <Grid item xs={12}>
+                      <Button
+                        fullWidth
+                        variant="outlined"
+                        component={RouterLink}
+                        to="/support"
+                        startIcon={<SupportAgentIcon />}
+                      >
+                        Help & Support
+                      </Button>
+                    </Grid>
                   </Grid>
                 </CardContent>
               </DashboardCard>
@@ -363,13 +494,17 @@ const PatientDashboard = () => {
               <DashboardCard>
                 <CardHeaderStyled>
                   <AssignmentIndIcon color="secondary" />
-                  <Typography variant="h6" component="h2">Provider Portal</Typography>
+                  <Typography variant="h6" component="h2">
+                    Provider Portal
+                  </Typography>
                 </CardHeaderStyled>
-                <CardContent sx={{ textAlign: 'center' }}>
-                  {!applicationStatus || applicationStatus.status === 'rejected' ? (
+                <CardContent sx={{ textAlign: "center" }}>
+                  {!applicationStatus ||
+                  applicationStatus.status === "rejected" ? (
                     <>
                       <Typography variant="body2" sx={{ mb: 2 }}>
-                        Interested in joining our network of healthcare providers?
+                        Interested in joining our network of healthcare
+                        providers?
                       </Typography>
                       <Button
                         variant="contained"
@@ -382,16 +517,24 @@ const PatientDashboard = () => {
                     </>
                   ) : (
                     <Alert
-                      severity={applicationStatus.status === "pending" ? "info" : "success"}
+                      severity={
+                        applicationStatus.status === "pending"
+                          ? "info"
+                          : "success"
+                      }
                       iconMapping={{
-                          info: <PendingActionsIcon fontSize="inherit" />,
-                          success: <CheckCircleOutlineIcon fontSize="inherit" />,
+                        info: <PendingActionsIcon fontSize="inherit" />,
+                        success: <CheckCircleOutlineIcon fontSize="inherit" />,
                       }}
-                      sx={{ textAlign: 'left' }}
+                      sx={{ textAlign: "left" }}
                     >
-                      <Typography fontWeight="bold">Application Status: {applicationStatus.status}</Typography>
-                      {applicationStatus.status === "pending" && "Your application is under review."}
-                      {applicationStatus.status === "approved" && "Congratulations! You are approved."}
+                      <Typography fontWeight="bold">
+                        Application Status: {applicationStatus.status}
+                      </Typography>
+                      {applicationStatus.status === "pending" &&
+                        "Your application is under review."}
+                      {applicationStatus.status === "approved" &&
+                        "Congratulations! You are approved."}
                     </Alert>
                   )}
                 </CardContent>

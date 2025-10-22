@@ -1,6 +1,10 @@
 const pool = require("../config/db");
+const fs = require("fs/promises");
+const path = require("path");
 const { generateMeetLink } = require("../utils/generateMeetLink");
 const { sendEmail } = require('../utils/emailService');
+const { generatePrescriptionPdf, generateInvoicePdf } = require('../utils/pdfGenerator');
+const { log } = require("console");
 const createAppointment = async (req, res, next) => {
   const { doctor_id, service_id, scheduled_time, patient_notes } = req.body;
   const patient_id = req.user.id;
@@ -326,68 +330,6 @@ const updateAppointment = async (req, res, next) => {
   }
 };
 
-const uploadPrescriptionForAppointment = async (req, res, next) => {
-  const appointmentId = req.params.id;
-  const userId = req.user.id;
-  const { pharmacy_id } = req.body;
-  if (!req.file) {
-    return res.status(400).json({ message: "No prescription file uploaded" });
-  }
-  const prescriptionPath = req.file.path.replace(/\\/g, "/");
-  const relativePath = prescriptionPath.substring(
-    prescriptionPath.indexOf("/uploads/")
-  );
-
-  try {
-    const [
-      rows,
-    ] = await pool.query(
-      "SELECT a.id, doc.user_id FROM appointments a JOIN doctors doc ON a.doctor_id = doc.id WHERE a.id = ?",
-      [appointmentId]
-    );
-    if (rows.length === 0) {
-      return res.status(404).json({ message: "Appointment not found" });
-    }
-    const appointment = rows[0];
-
-    if (appointment.user_id !== userId) {
-      fs.unlink(req.file.path, (err) => {
-        if (err) console.error("Error deleting unauthorized upload:", err);
-      });
-      return res
-        .status(403)
-        .json({
-          message: "Not authorized to upload prescription for this appointment",
-        });
-    }
-
-    await pool.query(
-      "UPDATE appointments SET prescription_path = ?, status = ?, pharmacy_id = ? WHERE id = ?",
-      [relativePath, "completed", pharmacy_id || null, appointmentId]
-    );
-
-    const [
-      updatedAppointment,
-    ] = await pool.query("SELECT * from appointments WHERE id = ?", [
-      appointmentId,
-    ]);
-
-    res.status(200).json({
-      message: "Prescription uploaded successfully",
-      prescriptionPath: relativePath,
-      appointment: updatedAppointment[0],
-    });
-  } catch (error) {
-    console.error("Upload Prescription error:", error);
-    if (req.file && req.file.path) {
-      fs.unlink(req.file.path, (err) => {
-        if (err) console.error("Error deleting file after DB error:", err);
-      });
-    }
-    next(error);
-  }
-};
-
 const markAppointmentAsPaid = async (req, res, next) => {
   const appointmentId = req.params.id;
   const patientId = req.user.id;
@@ -480,11 +422,178 @@ const markAppointmentAsPaid = async (req, res, next) => {
   }
 };
 
+const generateAndAddPrescription = async (req, res, next) => {
+    const appointmentId = req.params.id;
+    const doctorUserId = req.user.id;
+    const { medications, pharmacy_id } = req.body;
+    console.log(req.body);
+    
+
+    if (!Array.isArray(medications) || medications.length === 0) {
+        return res.status(400).json({ message: 'Prescription must include at least one medication.' });
+    }
+
+    try {
+        
+        const [appRows] = await pool.query(
+            `SELECT a.id, 
+                    doc.user_id as doctor_user_id, d_user.name as doctor_name, doc.specialization,
+                    p_user.id as patient_user_id, p_user.name as patient_name, p_user.dob as patient_dob,
+                    p_user.email as patient_email
+             FROM appointments a
+             JOIN doctors doc ON a.doctor_id = doc.id
+             JOIN users d_user ON doc.user_id = d_user.id
+             JOIN users p_user ON a.patient_id = p_user.id
+             WHERE a.id = ?`, [appointmentId]
+        );
+
+        if (appRows.length === 0) return res.status(404).json({ message: "Appointment not found" });
+        if (appRows[0].doctor_user_id !== doctorUserId) return res.status(403).json({ message: "Not authorized for this appointment" });
+        
+        const appointment = appRows[0];
+        
+        
+        let pharmacyDetails = null;
+        console.log(pharmacy_id);
+        
+        if (pharmacy_id) {
+            const [pharmacyRows] = await pool.query("SELECT * FROM pharmacies WHERE id = ?", [pharmacy_id]);
+            if (pharmacyRows.length > 0) {
+                pharmacyDetails = pharmacyRows[0];
+            }
+            
+            
+        }
+        console.log(pharmacyDetails);
+
+        
+        const prescriptionData = {
+            appointmentId,
+            doctor: { name: appointment.doctor_name, specialization: appointment.specialization },
+            patient: { name: appointment.patient_name, dob: appointment.patient_dob },
+            date: new Date().toLocaleDateString(),
+            medications, 
+        };
+        const pdfBytes = await generatePrescriptionPdf(prescriptionData);
+        
+        
+        const filename = `presc-${appointmentId}-${Date.now()}.pdf`;
+        const dirPath = path.join(__dirname, '../uploads/prescriptions/');
+        await fs.mkdir(dirPath, { recursive: true });
+        const filepath = path.join(dirPath, filename);
+        await fs.writeFile(filepath, pdfBytes);
+        const relativePath = `/uploads/prescriptions/${filename}`;
+        
+        
+        
+        if (pharmacy_id) {
+          sendEmail({
+              to: pharmacyDetails.email,
+              subject: `New Prescription for ${appointment.patient_name} (Ref #${appointmentId})`,
+              html: `<p>A new prescription has been issued by <strong>Dr. ${appointment.doctor_name}</strong>. Please see the attached PDF.</p>`,
+              attachments: [{
+                  filename: `prescription-${appointmentId}.pdf`,
+                  content: pdfBytes,
+                  contentType: 'application/pdf',
+              }]
+          });
+        }
+        
+        
+        sendEmail({
+            to: appointment.patient_email,
+            subject: `Your Prescription from Dr. ${appointment.doctor_name} is ready`,
+            html: `<p>Hi ${appointment.patient_name},</p><p>Your prescription is ready. It has been sent to your selected pharmacy, and you can download a copy from your appointment details page.</p>`
+        }).catch(err => console.error(`Failed to send patient notification for appt #${appointmentId}`, err));
+
+        
+        await pool.query(
+            "UPDATE appointments SET prescription_path = ?, status = 'completed', pharmacy_id = ? WHERE id = ?",
+            [relativePath, pharmacy_id || null, appointmentId]
+        );
+
+        res.status(200).json({ message: 'Prescription generated and sent successfully', prescriptionPath: relativePath });
+
+    } catch (error) {
+        console.error("Generate Prescription error:", error);
+        next(error);
+    }
+};
+
+const downloadAppointmentInvoice = async (req, res, next) => {
+    const { id: appointmentId } = req.params;
+    const userId = req.user.id;
+    const userRole = req.user.role;
+
+    try {
+         const [rows] = await pool.query(
+            `SELECT 
+                a.*, 
+                p.id as patient_user_id, p.name AS patient_name, p.email AS patient_email,
+                d_user.id as doctor_user_id, d_user.name AS doctor_name,
+                s.name as service_name
+            FROM appointments a
+            JOIN users p ON a.patient_id = p.id
+            LEFT JOIN doctors doc ON a.doctor_id = doc.id
+            LEFT JOIN users d_user ON doc.user_id = d_user.id
+            LEFT JOIN services s ON a.service_id = s.id
+            WHERE a.id = ?`, [appointmentId]
+         );
+
+        if (rows.length === 0) {
+            return res.status(404).json({ message: 'Appointment not found' });
+        }
+        
+        const appointment = rows[0];
+
+        
+        const isPatient = userRole === 'patient' && appointment.patient_user_id === userId;
+        const isDoctor = userRole === 'doctor' && appointment.doctor_user_id === userId;
+        if (userRole !== 'admin' && !isPatient && !isDoctor) {
+             return res.status(403).json({ message: "Not authorized to view this invoice" });
+        }
+        
+        if (appointment.payment_status !== 'paid' || !appointment.fee) {
+            return res.status(400).json({ message: "Invoice can only be generated for paid appointments."});
+        }
+        
+        
+        
+        if (!appointment.doctor_name || !appointment.patient_name || !appointment.patient_email) {
+             console.error(`Invoice generation failed for appt #${appointmentId}: Critical data missing from DB result.`);
+             return res.status(500).json({ message: "Cannot generate invoice: Patient or Doctor data is incomplete."});
+        }
+        
+        
+        const invoiceData = {
+            appointmentId: appointment.id,
+            patient: { name: appointment.patient_name, email: appointment.patient_email },
+            doctor: { name: appointment.doctor_name },
+            serviceName: appointment.service_name,
+            date: appointment.updated_at,
+            fee: appointment.fee,
+            payment_intent_id: appointment.stripe_payment_intent_id,
+        };
+
+        const pdfBytes = await generateInvoicePdf(invoiceData);
+
+        res.setHeader('Content-Disposition', `attachment; filename="invoice-${appointment.id}.pdf"`);
+        res.setHeader('Content-Type', 'application/pdf');
+        res.send(Buffer.from(pdfBytes));
+
+    } catch (error) {
+        console.error("Invoice generation error:", error);
+        next(error);
+    }
+};
+
 module.exports = {
   createAppointment,
   getMyAppointments,
   getAppointmentById,
   updateAppointment,
-  uploadPrescriptionForAppointment,
+  generateAndAddPrescription,
+  downloadAppointmentInvoice,
+  
   markAppointmentAsPaid,
 };

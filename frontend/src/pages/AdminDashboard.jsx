@@ -50,8 +50,10 @@ const AdminDashboard = () => {
             value={currentTab}
             onChange={handleTabChange}
             aria-label="Admin Tabs"
-            variant="scrollable"
+            variant={window.innerWidth < 600 ? "scrollable" : "standard"}
             scrollButtons="auto"
+            allowScrollButtonsMobile
+            centered={window.innerWidth >= 600}
           >
             <Tab
               label="Users"

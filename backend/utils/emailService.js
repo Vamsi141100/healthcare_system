@@ -8,21 +8,29 @@ const transporter = nodemailer.createTransport({
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS,
     },
+    tls: {
+        rejectUnauthorized: false 
+    }
 });
 
-const sendEmail = async ({ to, subject, text, html }) => {
+const sendEmail = async (mailOptions) => {
     try {
-        const info = await transporter.sendMail({
-            from: `"Health Hub" <${process.env.EMAIL_USER}>`,
-            to,
-            subject,
-            text,
-            html,
-        });
-        console.log(`Email sent successfully to ${to}: ${info.messageId}`);
-    } catch (error) {
-        console.error(`Error sending email to ${to}:`, error);
         
+        const optionsWithFrom = {
+            from: `"Health Hub" <${process.env.EMAIL_USER}>`,
+            ...mailOptions
+        };
+        
+        console.log(`Attempting to send email to: ${optionsWithFrom.to}`);
+        const info = await transporter.sendMail(optionsWithFrom);
+        
+        console.log(`Email sent successfully to ${optionsWithFrom.to}: ${info.messageId}`);
+        return info; 
+        
+    } catch (error) {
+        console.error(`Error sending email to ${mailOptions.to}:`, error);
+        
+        throw new Error('Failed to send email.');
     }
 };
 

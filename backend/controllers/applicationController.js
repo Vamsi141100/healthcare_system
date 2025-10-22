@@ -249,10 +249,79 @@ const reviewApplication = async (req, res, next) => {
   }
 };
 
+const downloadAppointmentInvoice = async (req, res, next) => {
+    const { id: appointmentId } = req.params;
+    const userId = req.user.id;
+    const userRole = req.user.role;
+
+    try {
+         
+         const [rows] = await pool.query(
+            `SELECT 
+                a.*, 
+                p.id as patient_user_id, p.name AS patient_name, p.email AS patient_email,
+                d_user.id as doctor_user_id, d_user.name AS doctor_name,
+                s.name as service_name
+            FROM appointments a
+            JOIN users p ON a.patient_id = p.id
+            LEFT JOIN doctors doc ON a.doctor_id = doc.id
+            LEFT JOIN users d_user ON doc.user_id = d_user.id
+            LEFT JOIN services s ON a.service_id = s.id
+            WHERE a.id = ?`, [appointmentId]
+         );
+
+        if (rows.length === 0) {
+            return res.status(404).json({ message: 'Appointment not found' });
+        }
+        
+        const appointment = rows[0];
+
+        
+        const isPatient = userRole === 'patient' && appointment.patient_user_id === userId;
+        
+        const isDoctor = userRole === 'doctor' && appointment.doctor_user_id === userId;
+        if (userRole !== 'admin' && !isPatient && !isDoctor) {
+             return res.status(403).json({ message: "Not authorized to view this invoice" });
+        }
+
+        if (appointment.payment_status !== 'paid' || !appointment.fee) {
+            return res.status(400).json({ message: "Invoice can only be generated for paid appointments."});
+        }
+        
+        
+        
+        if (!appointment.doctor_name) {
+             console.error(`Invoice generation failed for appt #${appointmentId}: Doctor name is missing from DB result.`);
+             return res.status(500).json({ message: "Cannot generate invoice: Doctor data is missing."});
+        }
+        
+        const invoiceData = {
+            appointmentId: appointment.id,
+            patient: { name: appointment.patient_name, email: appointment.patient_email },
+            doctor: { name: appointment.doctor_name }, 
+            serviceName: appointment.service_name,
+            date: appointment.updated_at, 
+            fee: appointment.fee,
+            payment_intent_id: appointment.stripe_payment_intent_id,
+        };
+
+        const pdfBytes = await generateInvoicePdf(invoiceData);
+
+        res.setHeader('Content-Disposition', `attachment; filename="invoice-${appointment.id}.pdf"`);
+        res.setHeader('Content-Type', 'application/pdf');
+        res.send(Buffer.from(pdfBytes));
+
+    } catch (error) {
+        console.error("Invoice generation error:", error);
+        next(error);
+    }
+};
+
 module.exports = {
   submitApplication,
   getMyApplicationStatus,
   getAllApplications,
   getApplicationById,
   reviewApplication,
+  downloadAppointmentInvoice,
 };

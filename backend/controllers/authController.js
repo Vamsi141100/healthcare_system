@@ -10,10 +10,10 @@ const generateToken = (id, role) => {
 };
 
 const registerUser = async (req, res, next) => {
-  const { name, email, password } = req.body;
+  const { name, email, password, dob } = req.body;
 
-  if (!name || !email || !password) {
-    return res.status(400).json({ message: "Please add all fields" });
+  if (!name || !email || !password || !dob) {
+    return res.status(400).json({ message: "Please provide name, email, password, and date of birth" });
   }
 
   try {
@@ -30,8 +30,8 @@ const registerUser = async (req, res, next) => {
     const [
       result,
     ] = await pool.query(
-      "INSERT INTO users (name, email, password_hash) VALUES (?, ?, ?)",
-      [name, email, password_hash]
+      "INSERT INTO users (name, email, password_hash, dob) VALUES (?, ?, ?, ?)",
+      [name, email, password_hash, dob]
     );
 
     const newUser = {
