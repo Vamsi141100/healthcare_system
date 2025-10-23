@@ -144,8 +144,48 @@ const getApprovedDoctors = async (req, res, next) => {
   }
 };
 
+const getPatientHistory = async (req, res, next) => {
+    const { patientId } = req.params;
+    const doctorUserId = req.user.id; 
+
+    try {
+        
+        
+        const [doctorRecord] = await pool.query("SELECT id FROM doctors WHERE user_id = ?", [doctorUserId]);
+        if (doctorRecord.length === 0) {
+            return res.status(403).json({ message: "Doctor profile not found." });
+        }
+        const doctorId = doctorRecord[0].id;
+        
+        const [authCheck] = await pool.query(
+            "SELECT id FROM appointments WHERE doctor_id = ? AND patient_id = ? LIMIT 1",
+            [doctorId, patientId]
+        );
+
+        if (authCheck.length === 0 && req.user.role !== 'admin') { 
+            return res.status(403).json({ message: "Not authorized to view this patient's history." });
+        }
+
+        
+        const [history] = await pool.query(
+            `SELECT a.id, a.scheduled_time, a.status, s.name as service_name
+             FROM appointments a
+             LEFT JOIN services s ON a.service_id = s.id
+             WHERE a.patient_id = ?
+             ORDER BY a.scheduled_time DESC`,
+            [patientId]
+        );
+
+        res.status(200).json(history);
+    } catch (error) {
+        console.error("Get Patient History error:", error);
+        next(error);
+    }
+};
+
 module.exports = {
   getDoctorDashboard,
   updateDoctorProfile,
   getApprovedDoctors,
+  getPatientHistory,
 };

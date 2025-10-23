@@ -6,13 +6,14 @@ import { useSnackbar } from "notistack";
 import appointmentService from "../services/appointmentService";
 import paymentService from "../services/paymentService";
 import pharmacyService from "../services/pharmacyService";
+import doctorService from "../services/doctorService"; 
 
 import VideoCallSelfHosted from "../components/video/VideoCallSelfHosted";
-import PrescriptionModal from '../components/common/PrescriptionModal'; 
+import PrescriptionModal from '../components/common/PrescriptionModal';
 
 import {
   Container, Typography, Box, Grid, Card, CardContent, Button, CircularProgress, Alert, useTheme,
-  TextField, Stack, Modal, alpha, styled
+  TextField, Stack, Modal, alpha, styled, List, ListItem, ListItemText
 } from "@mui/material";
 
 import EventIcon from "@mui/icons-material/Event";
@@ -27,6 +28,8 @@ import DownloadForOfflineIcon from '@mui/icons-material/DownloadForOffline';
 import PostAddIcon from '@mui/icons-material/PostAdd';
 import GroupsIcon from '@mui/icons-material/Groups';
 import LocalPharmacyIcon from '@mui/icons-material/LocalPharmacy';
+import HistoryIcon from '@mui/icons-material/History';
+import { is } from "date-fns/locale";
 
 const SectionHeader = styled(Box)(({ theme }) => ({
   display: 'flex',
@@ -53,14 +56,18 @@ const InfoGrid = styled(Grid)(({ theme }) => ({
 }));
 
 const AppointmentDetailsPage = () => {
+  
   const { id: appointmentId } = useParams();
   const theme = useTheme();
   const { user, profile } = useSelector((state) => state.auth);
-  const [appointment, setAppointment] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState("");
   const { enqueueSnackbar } = useSnackbar();
 
+  const [appointment, setAppointment] = useState(null);
+  const [patientHistory, setPatientHistory] = useState([]); 
+  const [isLoading, setIsLoading] = useState(true);
+  const [isHistoryLoading, setIsHistoryLoading] = useState(false); 
+  const [error, setError] = useState("");
+  
   
   const [doctorNotes, setDoctorNotes] = useState("");
   const [feeInput, setFeeInput] = useState("");
@@ -70,7 +77,12 @@ const AppointmentDetailsPage = () => {
   
   const [pharmacies, setPharmacies] = useState([]);
   const [isPrescriptionModalOpen, setIsPrescriptionModalOpen] = useState(false);
-  const [showVideoCall, setShowVideoCall] = useState(false);
+  const [showVideoCall, setShowVideoCall] = useState(false)
+
+  const isDoctorView = user?.role === "doctor" || user?.role === "admin";
+  const isPatientView = user?.role === "patient" || user?.role === "admin";
+
+  
 
   
 
@@ -80,7 +92,7 @@ const AppointmentDetailsPage = () => {
     try {
       const data = await appointmentService.getAppointmentById(appointmentId);
       setAppointment(data);
-      if (user?.role === "doctor" && data) {
+      if (profile?.role === "doctor" && data) {
         setDoctorNotes(data.doctor_notes || "");
         setFeeInput(data.fee || "");
       }
@@ -91,28 +103,45 @@ const AppointmentDetailsPage = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [appointmentId, user?.role, enqueueSnackbar]);
+  }, [appointmentId, profile?.role, enqueueSnackbar]);
 
   const fetchPharmacies = useCallback(async () => {
-      try {
-          const data = await pharmacyService.getPharmacies();
-          setPharmacies(data || []);
-      } catch(err) {
-          enqueueSnackbar('Could not load pharmacies', { variant: 'error' });
-      }
+    try {
+        const data = await pharmacyService.getPharmacies();
+        setPharmacies(data || []);
+    } catch(err) {
+        console.error("Failed to fetch pharmacies:", err);
+        enqueueSnackbar('Could not load pharmacies list', { variant: 'warning' });
+    }
   }, [enqueueSnackbar]);
 
+  const fetchPatientHistory = useCallback(async (patientId) => {
+      if (user?.role !== "doctor") return;
+      setIsHistoryLoading(true);
+      try {
+        const historyData = await doctorService.getPatientHistory(patientId);
+        setPatientHistory(historyData.filter(app => app.id !== parseInt(appointmentId, 10)) || []);
+      } catch (err) {
+          console.error("Failed to fetch patient history:", err);
+      } finally {
+          setIsHistoryLoading(false);
+      }
+  }, [user?.role, appointmentId]);
+  
   useEffect(() => {
     if (appointmentId) {
-        fetchAppointmentDetails();
-        if(profile?.role === 'doctor') {
-            fetchPharmacies();
-        }
+      fetchAppointmentDetails();
     }
-  }, [appointmentId, profile?.role, fetchAppointmentDetails, fetchPharmacies]);
+  }, [appointmentId, fetchAppointmentDetails]);
+
+  useEffect(() => {
+    if (appointment && user?.role === 'doctor') {
+        fetchPharmacies();
+        fetchPatientHistory(appointment.patient_id);
+    }
+  }, [appointment, user?.role, fetchPatientHistory, fetchPharmacies]);
 
   
-
   const handleDoctorUpdate = async (fieldData) => {
     if (!isDoctorView) return;
     setIsUpdating(true);
@@ -124,9 +153,7 @@ const AppointmentDetailsPage = () => {
       enqueueSnackbar("Appointment updated successfully", { variant: "success" });
     } catch (err) {
       enqueueSnackbar(err.response?.data?.message || "Update failed", { variant: "error" });
-    } finally {
-      setIsUpdating(false);
-    }
+    } finally { setIsUpdating(false); }
   };
 
   const handlePayment = async () => {
@@ -147,9 +174,7 @@ const AppointmentDetailsPage = () => {
       fetchAppointmentDetails();
     } catch(err) {
        enqueueSnackbar(err.response?.data?.message || 'Failed to generate prescription', { variant: 'error' });
-    } finally {
-        setSubmitting(false);
-    }
+    } finally { setSubmitting(false); }
   };
   
   const handleDownloadInvoice = async () => {
@@ -167,9 +192,7 @@ const AppointmentDetailsPage = () => {
       } catch(err) {
         console.error("Invoice download error:", err);
         enqueueSnackbar(err.response?.data?.message || 'Failed to download invoice.', { variant: 'error' });
-      } finally {
-        setIsDownloading(false);
-      }
+      } finally { setIsDownloading(false); }
   };
 
   const handleLeaveCall = () => {
@@ -179,8 +202,6 @@ const AppointmentDetailsPage = () => {
   };
 
   
-  const isDoctorView = user?.role === "doctor" && appointment?.doctor_profile_id === user?.profile?.id;
-  const isPatientView = user?.role === "patient" && appointment?.patient_id === user?.id;
   const canJoinVideo = appointment?.status === "confirmed" && (isDoctorView || (isPatientView && appointment.payment_status === "paid"));
   const canPatientPay = isPatientView && appointment?.status !== "cancelled" && appointment?.payment_status === "unpaid" && appointment?.fee > 0;
   const canDoctorCreatePrescription = isDoctorView && ["confirmed", "completed"].includes(appointment?.status) && !appointment?.prescription_path;
@@ -188,7 +209,6 @@ const AppointmentDetailsPage = () => {
   const canDoctorSetFee = isDoctorView && (!appointment?.fee || appointment?.fee <= 0) && ["pending", "confirmed"].includes(appointment?.status);
 
   
-
   if (isLoading) return <Container sx={{ textAlign: "center", mt: 5 }}><CircularProgress size={50} /></Container>;
   if (error) return <Container sx={{ mt: 5 }}><Alert severity="error">{error}</Alert></Container>;
   if (!appointment) return <Container sx={{ mt: 5 }}><Alert severity="warning">Appointment data not found.</Alert></Container>;
@@ -319,11 +339,50 @@ const AppointmentDetailsPage = () => {
                         </Stack>
                     </CardContent>
                 </InfoCard>
+
+                {}
+                {isDoctorView && (
+                  <InfoCard>
+                    <CardContent>
+                      <SectionHeader><HistoryIcon /><Typography variant="h6">Patient History</Typography></SectionHeader>
+                      {isHistoryLoading ? (
+                        <Box sx={{ display: 'flex', justifyContent: 'center' }}>
+                            <CircularProgress size={30} />
+                        </Box>
+                      ) : (
+                         <Box sx={{ maxHeight: '200px', overflowY: 'auto' }}>
+                             {patientHistory.length === 0 ? (
+                                <Typography variant="body2" color="text.secondary" align="center">No previous appointments found.</Typography>
+                             ) : (
+                                <List dense>
+                                    {patientHistory.map(histApp => (
+                                        <ListItem
+                                            key={histApp.id}
+                                            divider
+                                            secondaryAction={
+                                                <Button size="small" component={RouterLink} to={`/appointments/${histApp.id}`} target="_blank">
+                                                    View
+                                                </Button>
+                                            }
+                                        >
+                                            <ListItemText
+                                                primary={new Date(histApp.scheduled_time).toLocaleDateString()}
+                                                secondary={`${histApp.service_name || 'Consultation'} - ${histApp.status}`}
+                                            />
+                                        </ListItem>
+                                    ))}
+                                </List>
+                             )}
+                         </Box>
+                      )}
+                    </CardContent>
+                  </InfoCard>
+                )}
             </Stack>
         </Grid>
-
       </Grid>
-       {isPatientView && appointment.status === "completed" && (
+       
+      {isPatientView && appointment.status === "completed" && (
         <Box sx={{ mt: 4, textAlign: "center" }}>
           <Button variant="contained" color="secondary" component={RouterLink} to={`/submit-claim/${appointmentId}`}>File Insurance Claim</Button>
         </Box>

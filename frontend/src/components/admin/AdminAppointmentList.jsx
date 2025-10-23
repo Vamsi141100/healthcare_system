@@ -248,6 +248,7 @@ const AdminAppointmentList = () => {
                     <Tooltip title="View Details">
                       <IconButton
                         size="small"
+                        target="_blank"
                         color="info"
                         component={RouterLink}
                         to={`/appointments/${app.id}`}

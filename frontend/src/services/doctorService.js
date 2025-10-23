@@ -12,9 +12,15 @@ const updateProfile = async (profileData) => {
   return response.data;
 };
 
+const getPatientHistory = async (patientId) => {
+  const response = await axiosInstance.get(API_URL + `patient-history/${patientId}`);
+  return response.data;
+};
+
 const doctorService = {
   getDashboard,
   updateProfile,
+  getPatientHistory,
 };
 
 export default doctorService;

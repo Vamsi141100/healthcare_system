@@ -74,6 +74,7 @@ function RoleBasedDashboard() {
     );
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
+  
 
   switch (profile.role) {
     case "patient":
@@ -167,7 +168,7 @@ function App() {
             />
             {}
             <Route
-              path="/appointments/:id"
+              path="/appointments/*"
               element={
                 <RequireAuth roles={["patient", "doctor", "admin"]}>
                   <AppointmentDetailsPage />

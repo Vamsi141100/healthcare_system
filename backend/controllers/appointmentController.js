@@ -146,70 +146,59 @@ const getMyAppointments = async (req, res, next) => {
 
 const getAppointmentById = async (req, res, next) => {
   const appointmentId = req.params.id;
-  const userId = req.user.id;
-  const userRole = req.user.role;
+  const loggedInUserId = req.user.id;
+  const loggedInUserRole = req.user.role;
 
   try {
+    
     const [rows] = await pool.query(
-      `
-            SELECT
-                a.*,
-                p.name AS patient_name, p.email AS patient_email,
-                d_user.name AS doctor_name, d_user.email AS doctor_email, doc.id as doctors_table_id,
-                doc.specialization AS doctor_specialization,
-                s.name AS service_name
-            FROM appointments a
-            JOIN users p ON a.patient_id = p.id
-            LEFT JOIN doctors doc ON a.doctor_id = doc.id
-            LEFT JOIN users d_user ON doc.user_id = d_user.id
-            LEFT JOIN services s ON a.service_id = s.id
-            WHERE a.id = ?
-        `,
+      `SELECT
+          a.*,
+          p.name AS patient_name, p.email AS patient_email,
+          d_user.name AS doctor_name, d_user.email AS doctor_email,
+          doc.id as doctor_profile_id, doc.user_id as doctor_user_id,
+          doc.specialization AS doctor_specialization,
+          s.name AS service_name
+       FROM appointments a
+       JOIN users p ON a.patient_id = p.id
+       LEFT JOIN doctors doc ON a.doctor_id = doc.id
+       LEFT JOIN users d_user ON doc.user_id = d_user.id
+       LEFT JOIN services s ON a.service_id = s.id
+       WHERE a.id = ?`,
       [appointmentId]
     );
 
     if (rows.length === 0) {
       return res.status(404).json({ message: "Appointment not found" });
     }
-
+    
     const appointment = rows[0];
 
+    
     let isAuthorized = false;
-    if (userRole === "admin") {
+    
+    if (loggedInUserRole === "admin") {
       isAuthorized = true;
-    } else if (userRole === "patient" && appointment.patient_id === userId) {
+    } else if (loggedInUserRole === "patient" && appointment.patient_id === loggedInUserId) {
+      
       isAuthorized = true;
-    } else if (userRole === "doctor") {
-      const [
-        doctorRecord,
-      ] = await pool.query("SELECT id FROM doctors WHERE user_id = ?", [
-        userId,
-      ]);
-      if (
-        doctorRecord.length > 0 &&
-        doctorRecord[0].id === appointment.doctors_table_id
-      ) {
-        isAuthorized = true;
-      }
+    } else if (loggedInUserRole === "doctor") {
+      
+      isAuthorized = true;
     }
 
     if (!isAuthorized) {
-      return res
-        .status(403)
-        .json({ message: "Not authorized to view this appointment" });
+      return res.status(403).json({ message: "Not authorized to view this appointment" });
     }
 
-    if (userRole === "patient" && appointment.payment_status !== "paid") {
+    
+    if (loggedInUserRole === "patient" && appointment.payment_status !== "paid") {
       appointment.meeting_link = null;
       appointment.google_event_id = null;
-    } else if (
-      userRole === "patient" &&
-      appointment.payment_status === "paid" &&
-      !appointment.meeting_link
-    ) {
     }
 
     res.status(200).json(appointment);
+
   } catch (error) {
     console.error("Get Appointment By ID error:", error);
     next(error);
@@ -222,16 +211,22 @@ const updateAppointment = async (req, res, next) => {
   const userId = req.user.id;
   const userRole = req.user.role;
 
-  if (!status && !fee && !payment_status && !doctor_notes) {
+  if (!status && !fee && !payment_status && !scheduled_time && !doctor_notes) {
     return res
       .status(400)
       .json({ message: "No valid fields provided for update" });
   }
 
   try {
-    const [rows] = await pool.query("SELECT * FROM appointments WHERE id = ?", [
-      appointmentId,
-    ]);
+    const [rows] = await pool.query(
+     `SELECT a.*, p.email as patient_email, p.name as patient_name, d_user.name as doctor_name
+      FROM appointments a
+      JOIN users p ON a.patient_id = p.id
+      LEFT JOIN doctors doc ON a.doctor_id = doc.id
+      LEFT JOIN users d_user ON doc.user_id = d_user.id
+      WHERE a.id = ?`,
+      [appointmentId]
+    );
     if (rows.length === 0) {
       return res.status(404).json({ message: "Appointment not found" });
     }
@@ -270,6 +265,15 @@ const updateAppointment = async (req, res, next) => {
     if (isDoctorAssigned) {
       if (status && ["confirmed", "completed", "cancelled"].includes(status)) {
         fieldsToUpdate.status = status;
+      }
+      if (scheduled_time) {
+        const newTime = new Date(scheduled_time);
+        const oldTime = new Date(appointment.scheduled_time);
+        
+        if (newTime.getTime() !== oldTime.getTime()) {
+          fieldsToUpdate.scheduled_time = scheduled_time;
+          timeChanged = true;
+        }
       }
       if (fee && parseFloat(fee) >= 0) {
         fieldsToUpdate.fee = parseFloat(fee);
@@ -316,6 +320,18 @@ const updateAppointment = async (req, res, next) => {
     queryParams.push(appointmentId);
 
     await pool.query(query, queryParams);
+
+    if (timeChanged) {
+      sendEmail({
+          to: appointment.patient_email,
+          subject: `Update: Your appointment with Dr. ${appointment.doctor_name} has been rescheduled`,
+          html: `<p>Hi ${appointment.patient_name},</p>
+                <p>Please note that your appointment has been rescheduled by the doctor.</p>
+                <p><strong>New Time:</strong> ${new Date(scheduled_time).toLocaleString()}</p>
+                <p>If this new time does not work for you, please cancel and re-book from your dashboard.</p>
+                <p>Best,<br>The Health Hub Team</p>`
+      }).catch(err => console.error(`Failed to send reschedule notification for appt #${appointmentId}`, err));
+    }
 
     const [
       updatedAppointment,
@@ -426,9 +442,7 @@ const generateAndAddPrescription = async (req, res, next) => {
     const appointmentId = req.params.id;
     const doctorUserId = req.user.id;
     const { medications, pharmacy_id } = req.body;
-    console.log(req.body);
     
-
     if (!Array.isArray(medications) || medications.length === 0) {
         return res.status(400).json({ message: 'Prescription must include at least one medication.' });
     }
@@ -454,7 +468,6 @@ const generateAndAddPrescription = async (req, res, next) => {
         
         
         let pharmacyDetails = null;
-        console.log(pharmacy_id);
         
         if (pharmacy_id) {
             const [pharmacyRows] = await pool.query("SELECT * FROM pharmacies WHERE id = ?", [pharmacy_id]);
@@ -464,7 +477,6 @@ const generateAndAddPrescription = async (req, res, next) => {
             
             
         }
-        console.log(pharmacyDetails);
 
         
         const prescriptionData = {
@@ -473,6 +485,7 @@ const generateAndAddPrescription = async (req, res, next) => {
             patient: { name: appointment.patient_name, dob: appointment.patient_dob },
             date: new Date().toLocaleDateString(),
             medications, 
+            pharmacy: pharmacyDetails,
         };
         const pdfBytes = await generatePrescriptionPdf(prescriptionData);
         

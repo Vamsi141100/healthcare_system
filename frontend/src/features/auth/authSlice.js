@@ -2,10 +2,11 @@ import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import authService from "../../services/authService";
 import userService from "../../services/userService";
 const user = JSON.parse(localStorage.getItem("user"));
+const profile = JSON.parse(localStorage.getItem("profile"));
 
 const initialState = {
   user: user ? user : null,
-  profile: null,
+  profile: profile ? profile : null,
   isLoading: false,
   isError: false,
   isSuccess: false,
@@ -32,15 +33,11 @@ export const login = createAsyncThunk(
     try {
       const loggedInUser = await authService.login(userData);
       if (loggedInUser && loggedInUser.token) {
-        try {
-          const profile = await userService.getMe();
-          return { ...loggedInUser, profile };
-        } catch (profileError) {
-          console.error("Failed to fetch profile after login:", profileError);
-          return { ...loggedInUser, profile: null };
-        }
+        const userProfile = await userService.getMe();
+        localStorage.setItem('profile', JSON.stringify(userProfile));
+        return { user: loggedInUser, profile: userProfile };
       }
-      return loggedInUser;
+      return { user: loggedInUser, profile: null };
     } catch (error) {
       const message =
         error.response?.data?.message || error.message || error.toString();
@@ -51,14 +48,16 @@ export const login = createAsyncThunk(
 
 export const logout = createAsyncThunk("auth/logout", async () => {
   authService.logout();
+  localStorage.removeItem('profile');
 });
 
 export const fetchUserProfile = createAsyncThunk(
   "auth/fetchProfile",
   async (_, thunkAPI) => {
     try {
-      const profile = await userService.getMe();
-      return profile;
+      const profileData = await userService.getMe();
+      localStorage.setItem('profile', JSON.stringify(profileData));
+      return profileData;
     } catch (error) {
       const message =
         error.response?.data?.message || error.message || error.toString();
@@ -90,8 +89,7 @@ export const authSlice = createSlice({
       })
       .addCase(register.fulfilled, (state, action) => {
         state.isLoading = false;
-        state.isSuccess = true;
-        state.user = action.payload;
+        state.user = null;
         state.profile = null;
         state.message = "Registration successful! Please login.";
       })
@@ -106,18 +104,11 @@ export const authSlice = createSlice({
         state.isLoading = true;
         state.isError = false;
         state.message = "";
-        state.profile = null;
       })
       .addCase(login.fulfilled, (state, action) => {
         state.isLoading = false;
         state.isSuccess = true;
-        state.user = {
-          id: action.payload.id,
-          name: action.payload.name,
-          email: action.payload.email,
-          role: action.payload.role,
-          token: action.payload.token,
-        };
+        state.user = action.payload.user;
         state.profile = action.payload.profile;
       })
       .addCase(login.rejected, (state, action) => {
@@ -136,6 +127,9 @@ export const authSlice = createSlice({
       })
       .addCase(fetchUserProfile.fulfilled, (state, action) => {
         state.isLoading = false;
+        if(state.user) {
+            state.user.role = action.payload.role;
+        }
         state.profile = action.payload;
       })
       .addCase(fetchUserProfile.rejected, (state, action) => {
